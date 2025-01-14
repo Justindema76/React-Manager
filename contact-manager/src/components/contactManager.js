@@ -1,114 +1,86 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 
-const ContactManager = () => {
-  const [contacts, setContacts] = useState(() => {
-    // Load contacts from localStorage on initial render
-    const savedContacts = localStorage.getItem("contacts");
-    return savedContacts ? JSON.parse(savedContacts) : [];
-  });
+function ContactManager() {
+  const navigate = useNavigate();
+  const [contacts, setContacts] = useState([]);
+  const [newContactName, setNewContactName] = useState('');
+  const [newContactEmail, setNewContactEmail] = useState('');
+  const [error, setError] = useState('');
 
-  const [contactName, setContactName] = useState("");
-  const [contactEmail, setContactEmail] = useState("");
-  const [searchTerm, setSearchTerm] = useState("");
+  // Get the logged-in user's email
+  const loggedInUser = localStorage.getItem('loggedInUser');
 
   useEffect(() => {
-    // Save contacts to localStorage whenever the contacts array changes
-    localStorage.setItem("contacts", JSON.stringify(contacts));
-  }, [contacts]);
-
-  const addContact = () => {
-    if (contactName && contactEmail) {
-      setContacts([...contacts, { name: contactName, email: contactEmail }]);
-      setContactName("");
-      setContactEmail("");
+    if (!loggedInUser) {
+      // If the user is not logged in, redirect to the login page
+      navigate('/login');
+    } else {
+      // Load the user's contact list from localStorage
+      const userContacts = JSON.parse(localStorage.getItem(`contacts_${loggedInUser}`)) || [];
+      setContacts(userContacts);
     }
-  };
+  }, [loggedInUser, navigate]);
 
-  const deleteContact = (index) => {
-    const updatedContacts = contacts.filter((_, i) => i !== index);
+  const handleAddContact = () => {
+    if (!newContactName || !newContactEmail) {
+      setError('Please provide both name and email for the contact.');
+      return;
+    }
+
+    // Create a new contact object
+    const newContact = { name: newContactName, email: newContactEmail };
+
+    // Update the contacts in localStorage
+    const updatedContacts = [...contacts, newContact];
+    localStorage.setItem(`contacts_${loggedInUser}`, JSON.stringify(updatedContacts));
     setContacts(updatedContacts);
+    setNewContactName('');
+    setNewContactEmail('');
+    setError('');
   };
-
-  const filteredContacts = contacts.filter((contact) =>
-    contact.name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
 
   return (
-    <div className="container mt-5">
-      <h2 className="text-center mb-4">Contact Manager</h2>
+    <div className="container">
+      <h2>Contact Manager</h2>
+      {error && <div className="alert alert-danger">{error}</div>}
 
-      {/* Form for Adding Contacts */}
-      <div className="card p-4 shadow">
-        <div className="mb-3">
-          <label htmlFor="contactName" className="form-label">
-            Name
-          </label>
-          <input
-            type="text"
-            id="contactName"
-            className="form-control"
-            placeholder="Enter name"
-            value={contactName}
-            onChange={(e) => setContactName(e.target.value)}
-          />
-        </div>
-        <div className="mb-3">
-          <label htmlFor="contactEmail" className="form-label">
-            Email
-          </label>
-          <input
-            type="email"
-            id="contactEmail"
-            className="form-control"
-            placeholder="Enter email"
-            value={contactEmail}
-            onChange={(e) => setContactEmail(e.target.value)}
-          />
-        </div>
-        <button className="btn btn-primary w-100" onClick={addContact}>
-          Add Contact
-        </button>
-      </div>
-
-      {/* Search Bar */}
-      <div className="input-group mt-4">
-        <input
-          type="text"
-          className="form-control"
-          placeholder="Search contacts..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
+      <div className="mb-3">
+        <label htmlFor="contactName" className="form-label">Contact Name</label>
+        <input 
+          type="text" 
+          className="form-control" 
+          id="contactName" 
+          placeholder="Enter contact's name" 
+          value={newContactName}
+          onChange={(e) => setNewContactName(e.target.value)} 
         />
       </div>
 
-      {/* Contact List */}
-      <div className="mt-4">
-        <h3 className="mb-3">Contact List</h3>
-        {filteredContacts.length > 0 ? (
-          <ul className="list-group">
-            {filteredContacts.map((contact, index) => (
-              <li
-                key={index}
-                className="list-group-item d-flex justify-content-between align-items-center"
-              >
-                <div>
-                  <strong>{contact.name}</strong> - {contact.email}
-                </div>
-                <button
-                  className="btn btn-danger btn-sm"
-                  onClick={() => deleteContact(index)}
-                >
-                  Delete
-                </button>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p className="text-muted">No contacts found.</p>
-        )}
+      <div className="mb-3">
+        <label htmlFor="contactEmail" className="form-label">Contact Email</label>
+        <input 
+          type="email" 
+          className="form-control" 
+          id="contactEmail" 
+          placeholder="Enter contact's email"
+          value={newContactEmail}
+          onChange={(e) => setNewContactEmail(e.target.value)} 
+        />
       </div>
+
+      <button onClick={handleAddContact} className="btn btn-primary">Add Contact</button>
+
+      <h3 className="mt-4">My Contacts</h3>
+      <ul className="list-group mt-3">
+        {contacts.map((contact, index) => (
+          <li key={index} className="list-group-item">
+            <strong>{contact.name}</strong> - {contact.email}
+          </li>
+        ))}
+      </ul>
     </div>
   );
-};
+}
 
 export default ContactManager;
